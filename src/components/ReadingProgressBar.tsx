@@ -1,42 +1,33 @@
-// src/components/ReadingProgressBar.tsx
-import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useEffect, useState } from "react";
 
 const ReadingProgressBar = () => {
-  const [progress, setProgress] = useState(0);
-  const location = useLocation();
-  const isArticleDetailPage = location.pathname.startsWith('/articles/'); 
+  const [width, setWidth] = useState(0);
 
-  const handleScroll = () => {
-    if (!isArticleDetailPage) return;
+  const scrollHeight = () => {
+    const element = document.documentElement;
+    const ScrollTop = element.scrollTop || document.body.scrollTop;
+    const ScrollHeight = element.scrollHeight || document.body.scrollHeight;
+    const clientHeight = element.clientHeight || document.body.clientHeight; // Height of window 
 
-    const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
-    const scrolled = window.scrollY;
-
-    if (totalHeight > 0) {
-      const newProgress = (scrolled / totalHeight) * 100;
-      setProgress(newProgress);
-    }
+    // Calculate height of the scrolling area
+    const height = ScrollHeight - clientHeight;
+    // Calculate percentage
+    const scrolled = (ScrollTop / height) * 100;
+    
+    setWidth(scrolled);
   };
 
   useEffect(() => {
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); 
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [isArticleDetailPage]);
-
-  if (!isArticleDetailPage) return null;
+    window.addEventListener("scroll", scrollHeight);
+    return () => window.removeEventListener("scroll", scrollHeight);
+  }, []);
 
   return (
-    // Wadah absolute untuk menempel di bagian bawah Header
-    <div className="absolute bottom-0 left-0 right-0 h-1"> 
-      <div 
-        className="h-full bg-blue-600 shadow-lg shadow-blue-500/50 transition-all duration-100 ease-out" 
-        style={{ width: `${progress}%` }} 
-      />
+    <div className="w-full h-1 bg-gray-200 dark:bg-gray-700 fixed top-0 left-0 z-50">
+      <div
+        className="h-full bg-blue-600 transition-all duration-100 ease-out"
+        style={{ width: `${width}%` }}
+      ></div>
     </div>
   );
 };

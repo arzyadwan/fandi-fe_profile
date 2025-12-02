@@ -1,5 +1,5 @@
 // src/components/TableOfContents.tsx
-import React from 'react';
+
 import type { Heading } from '../types/types';
 import { useActiveHeading } from '../hooks/useActiveHeading'; // Import hook baru
 
