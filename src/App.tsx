@@ -9,7 +9,7 @@ import {
 import { SidebarProvider } from "./SidebarContext";
 import { ThemeProvider } from "./ThemeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"; // Import
-import { SpeedInsights } from '@vercel/speed-insights/next';
+
 
 // Components (Eager Load - Dimuat langsung karena selalu tampil)
 import Header from "./components/Header";
@@ -87,7 +87,6 @@ function App() {
                         <Route path="/about" element={<AboutPage />} />
                       </Routes>
                     </Suspense>
-                    <SpeedInsights />
                   </main>
                 </div>
 
