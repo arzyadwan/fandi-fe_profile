@@ -5,8 +5,17 @@ import type { Article, Category, Tag } from '../types/types';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const API_BASE_URL = `${BASE_URL}/api`;
 
+// [PERBAIKAN 1] Membuat Axios Instance
+// Ini memungkinkan kita mengatur konfigurasi global satu kali saja.
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 20000, // [PENTING] 20 detik timeout untuk mengantisipasi "Cold Start" Railway
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-// Antarmuka baru untuk respons paginasi
+// Antarmuka respons paginasi
 interface PaginatedResponse<T> {
   count: number;
   next: string | null;
@@ -14,23 +23,31 @@ interface PaginatedResponse<T> {
   results: T[];
 }
 
-// Fungsi baru untuk mengambil artikel dengan paginasi
-export const getPaginatedArticles = async (url: string): Promise<PaginatedResponse<Article>> => {
-  // url akan menjadi seperti '/articles/?page=2' atau '/articles/?search=...'
-  // kita gunakan URL lengkap agar lebih fleksibel
+// Fungsi fetching artikel dengan paginasi
+export const getPaginatedArticles = async (urlOrPath: string): Promise<PaginatedResponse<Article>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}${url}`);
+    // [PERBAIKAN 2] Logika Cerdas URL
+    // Cek apakah input adalah URL lengkap (http...) atau path relatif (/articles...)
+    // Django REST Framework sering mengembalikan 'next' sebagai URL lengkap.
+    if (urlOrPath.startsWith('http')) {
+       // Jika URL lengkap, gunakan axios biasa (bypass baseURL instance)
+       const response = await axios.get(urlOrPath);
+       return response.data;
+    }
+    
+    // Jika path relatif, gunakan apiClient (otomatis pasang API_BASE_URL)
+    const response = await apiClient.get(urlOrPath);
     return response.data;
   } catch (error) {
     console.error('Error fetching paginated articles:', error);
-    // Mengembalikan struktur default jika error
     return { count: 0, next: null, previous: null, results: [] };
   }
 };
 
 export const getArticleBySlug = async (slug: string): Promise<Article | null> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/articles/${slug}/`);
+    // Gunakan apiClient, tidak perlu tulis ${API_BASE_URL} lagi
+    const response = await apiClient.get(`/articles/${slug}/`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching article with slug ${slug}:`, error);
@@ -40,7 +57,7 @@ export const getArticleBySlug = async (slug: string): Promise<Article | null> =>
 
 export const getLatestArticles = async (): Promise<Article[]> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/articles/latest/`); // Pastikan ini
+    const response = await apiClient.get(`/articles/latest/`);
     return response.data;
   } catch (error) {
     console.error('Error fetching latest articles:', error);
@@ -50,7 +67,7 @@ export const getLatestArticles = async (): Promise<Article[]> => {
 
 export const getPaginatedCategories = async (): Promise<PaginatedResponse<Category>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/categories/`);
+    const response = await apiClient.get(`/categories/`);
     return response.data;
   } catch (error) {
     console.error('Error fetching categories:', error);
@@ -60,7 +77,7 @@ export const getPaginatedCategories = async (): Promise<PaginatedResponse<Catego
 
 export const getPaginatedTags = async (): Promise<PaginatedResponse<Tag>> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/tags/`);
+    const response = await apiClient.get(`/tags/`);
     return response.data;
   } catch (error) {
     console.error('Error fetching tags:', error);

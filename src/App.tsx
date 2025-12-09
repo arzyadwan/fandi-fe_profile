@@ -1,8 +1,14 @@
 // src/App.tsx
 import { useState, useEffect, lazy, Suspense } from "react"; // [BARU] Import lazy & Suspense
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
 import { SidebarProvider } from "./SidebarContext";
 import { ThemeProvider } from "./ThemeContext";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"; // Import
 
 // Components (Eager Load - Dimuat langsung karena selalu tampil)
 import Header from "./components/Header";
@@ -17,6 +23,7 @@ const CategoriesPage = lazy(() => import("./pages/CategoriesPage"));
 const TagsPage = lazy(() => import("./pages/TagsPage"));
 const ArchivesPage = lazy(() => import("./pages/ArchivesPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
+const queryClient = new QueryClient();
 
 // [BARU] Komponen Loading Sederhana saat transisi halaman
 const PageLoader = () => (
@@ -41,45 +48,55 @@ function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <Router>
-      <ThemeProvider>
-        <SidebarProvider>
-          <ScrollToTop />
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans selection:bg-blue-500/30">
-            <div className="flex justify-center mx-auto">
-              
-              {/* Sidebar statis (kiri) */}
-              <div className="shrink-0">
-                <Sidebar isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <ThemeProvider>
+          <SidebarProvider>
+            <ScrollToTop />
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans selection:bg-blue-500/30">
+              <div className="flex justify-center mx-auto">
+                {/* Sidebar statis (kiri) */}
+                <div className="shrink-0">
+                  <Sidebar
+                    isMenuOpen={isMenuOpen}
+                    setIsMenuOpen={setIsMenuOpen}
+                  />
+                </div>
+
+                {/* Area Konten Tengah */}
+                <div className="flex-1 min-w-0 flex flex-col relative mx-4">
+                  <Header setIsMenuOpen={setIsMenuOpen} />
+
+                  <main className="flex-grow w-full">
+                    {/* [OPTIMASI] Suspense membungkus Routes untuk menangani loading state */}
+                    <Suspense fallback={<PageLoader />}>
+                      <Routes>
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="/articles" element={<ArticleListPage />} />
+                        <Route
+                          path="/articles/:slug"
+                          element={<ArticleDetailPage />}
+                        />
+                        <Route
+                          path="/categories"
+                          element={<CategoriesPage />}
+                        />
+                        <Route path="/tags" element={<TagsPage />} />
+                        <Route path="/archives" element={<ArchivesPage />} />
+                        <Route path="/about" element={<AboutPage />} />
+                      </Routes>
+                    </Suspense>
+                  </main>
+                </div>
+
+                {/* Sidebar statis (kanan) */}
+                <RightSidebar />
               </div>
-              
-              {/* Area Konten Tengah */}
-              <div className="flex-1 min-w-0 flex flex-col relative mx-4">
-                <Header setIsMenuOpen={setIsMenuOpen} />
-                
-                <main className="flex-grow w-full">
-                  {/* [OPTIMASI] Suspense membungkus Routes untuk menangani loading state */}
-                  <Suspense fallback={<PageLoader />}>
-                    <Routes>
-                      <Route path="/" element={<HomePage />} />
-                      <Route path="/articles" element={<ArticleListPage />} />
-                      <Route path="/articles/:slug" element={<ArticleDetailPage />} />
-                      <Route path="/categories" element={<CategoriesPage />} />
-                      <Route path="/tags" element={<TagsPage />} />
-                      <Route path="/archives" element={<ArchivesPage />} />
-                      <Route path="/about" element={<AboutPage />} />
-                    </Routes>
-                  </Suspense>
-                </main>
-              </div>
-              
-              {/* Sidebar statis (kanan) */}
-              <RightSidebar />
             </div>
-          </div>
-        </SidebarProvider>
-      </ThemeProvider>
-    </Router>
+          </SidebarProvider>
+        </ThemeProvider>
+      </Router>
+    </QueryClientProvider>
   );
 }
 
