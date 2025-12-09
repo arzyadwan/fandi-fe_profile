@@ -1,18 +1,17 @@
 // src/components/Header.tsx
-import { useEffect, useState} from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle";
 import ReadingProgressBar from "./ReadingProgressBar";
 import { useSidebar } from "../SidebarContext";
-import { getPaginatedTags, getLatestArticles } from "../services/apiClient";
-import type { Tag, Article } from "../types/types";
+import { useGlobalData } from "../context/GlobalContext"; // [BARU] Import Context
 
 // Menggunakan Lucide React agar konsisten dengan Sidebar/ArticleCard
 import {
   Menu,
   Search,
   Clock,
-  Hash,// Ikon dekoratif untuk search bar
+  Hash,
 } from "lucide-react"; 
 
 interface HeaderProps {
@@ -22,29 +21,39 @@ interface HeaderProps {
 const Header = ({ setIsMenuOpen }: HeaderProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const [mobileTags, setMobileTags] = useState<Tag[]>([]);
-  const [latestArticles, setLatestArticles] = useState<Article[]>([]);
+  
+  // [OPTIMASI UTAMA]
+  // 1. Hapus state lokal.
+  // 2. Ambil data dari GlobalContext.
+  // 3. Alias variable agar sesuai dengan kode JSX Anda (mobileTags, latestArticles)
+  const { tags: mobileTags, recentArticles: latestArticles } = useGlobalData();
+
   const navigate = useNavigate();
   const location = useLocation();
   const { pageTitle } = useSidebar();
   
+  // [LOGIKA SCROLL] Menambahkan fitur auto-hide saat scroll ke bawah
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
 
-
-  // --- Fetch Data Mobile ---
   useEffect(() => {
-    const fetchDynamicData = async () => {
-      try {
-        // Fetch sedikit saja untuk performa
-        const tagsData = await getPaginatedTags();
-        setMobileTags(tagsData.results.slice(0, 8)); 
-
-        const latestArticlesData = await getLatestArticles();
-        setLatestArticles(latestArticlesData.slice(0, 4));
-      } catch (err) {
-        console.error("Error fetching mobile header data:", err);
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Tampilkan jika di paling atas, atau jika scroll ke atas
+      if (currentScrollY < 100) {
+        setIsVisible(true);
+      } else if (currentScrollY > lastScrollY.current) {
+        setIsVisible(false); // Scroll ke bawah -> Sembunyi
+      } else {
+        setIsVisible(true);  // Scroll ke atas -> Muncul
       }
+      
+      lastScrollY.current = currentScrollY;
     };
-    fetchDynamicData();
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // --- Handlers ---
@@ -63,7 +72,7 @@ const Header = ({ setIsMenuOpen }: HeaderProps) => {
 
   // Helper: Title Formatter
   const getPageTitle = (pathname: string) => {
-    if (pathname === "/") return "Dashboard"; // Home diganti Dashboard agar lebih 'Tech'
+    if (pathname === "/") return "Dashboard"; 
     if (pathname.startsWith("/articles") && !pageTitle) return "Knowledge Base";
     if (pageTitle) return pageTitle;
 
@@ -81,12 +90,11 @@ const Header = ({ setIsMenuOpen }: HeaderProps) => {
 
   return (
     <>
-      {/* --- PERBAIKAN UTAMA DI SINI --- */}
       <header 
         className={`
           sticky top-0 z-30 w-full
-          transition-all duration-300 ease-in-out will-change-transform
-          
+          transition-transform duration-300 ease-in-out will-change-transform
+          ${isVisible ? 'translate-y-0' : '-translate-y-full'}
         `}
       >
         {/* Container Glassmorphism */}
@@ -95,7 +103,7 @@ const Header = ({ setIsMenuOpen }: HeaderProps) => {
             
             {/* LEFT: Menu & Title */}
             <div className="flex items-center gap-4 min-w-0 flex-1">
-              {/* Tombol Menu Mobile (Hanya muncul di layar kecil) */}
+              {/* Tombol Menu Mobile */}
               <button
                 onClick={() => setIsMenuOpen(true)}
                 className="md:hidden p-2 -ml-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
@@ -153,10 +161,9 @@ const Header = ({ setIsMenuOpen }: HeaderProps) => {
         </div>
       </header>
 
-      {/* Mobile Search Overlay (TETAP DI LUAR HEADER agar full screen) */}
+      {/* Mobile Search Overlay */}
       {isMobileSearchOpen && (
         <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-950 animate-in fade-in duration-200 flex flex-col md:hidden">
-            {/* ... (Isi overlay pencarian sama persis dengan sebelumnya) ... */}
             <div className="flex items-center gap-3 p-4 border-b border-gray-100 dark:border-gray-800">
             <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -181,6 +188,7 @@ const Header = ({ setIsMenuOpen }: HeaderProps) => {
           </div>
 
           <div className="flex-1 overflow-y-auto p-5 space-y-8">
+            {/* Trending Tags */}
             <div>
                 <div className="flex items-center gap-2 mb-4 text-gray-500 dark:text-gray-400">
                     <Hash className="w-4 h-4" />
@@ -199,6 +207,7 @@ const Header = ({ setIsMenuOpen }: HeaderProps) => {
                 </div>
             </div>
 
+            {/* Recent Updates */}
             <div>
                 <div className="flex items-center gap-2 mb-4 text-gray-500 dark:text-gray-400">
                     <Clock className="w-4 h-4" />

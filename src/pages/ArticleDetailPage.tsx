@@ -3,13 +3,14 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { getArticleBySlug } from '../services/apiClient';
 import type { Article, Heading } from '../types/types';
+import { Helmet } from 'react-helmet-async'; // [SUDAH ADA]
 
 // Markdown & Syntax Highlighting
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { Components } from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'; // Mengganti ke tema VS Code yang lebih familiar
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'; 
 import remarkGfm from 'remark-gfm';
 import slugify from 'slugify';
 
@@ -40,6 +41,7 @@ const ArticleDetailPage = () => {
     const markdownContainerRef = useRef<HTMLDivElement>(null);
     const { setHeadings, setPageTitle } = useSidebar();
 
+    // ... (Logika Fetching & TOC tetap sama) ...
     // --- Fetching Logic ---
     useEffect(() => {
         setLoading(true);
@@ -82,18 +84,14 @@ const ArticleDetailPage = () => {
     // --- TOC Extraction Logic ---
     useEffect(() => {
         if (markdownContainerRef.current && article) { 
-            // Memberikan sedikit delay agar ReactMarkdown selesai render
             setTimeout(() => {
                 if (!markdownContainerRef.current) return;
-                
-                const hTags = markdownContainerRef.current.querySelectorAll('h2, h3'); // Fokus H2 & H3 saja untuk TOC yang rapi
+                const hTags = markdownContainerRef.current.querySelectorAll('h2, h3');
                 const newHeadings: Heading[] = [];
-                
                 hTags.forEach(h => {
                     const text = h.textContent || '';
                     const id = h.id || slugify(text, { lower: true, strict: true });
                     h.id = id; 
-                    
                     newHeadings.push({
                         id: id,
                         text: text,
@@ -105,10 +103,9 @@ const ArticleDetailPage = () => {
         }
     }, [article, setHeadings]);
 
-
-    // --- Custom Markdown Components ---
+    // --- Custom Markdown Components (TETAP SAMA) ---
     const components: Components = {
-        // 1. Code Blocks (Mac Terminal Style)
+        // ... (kode komponen Markdown Anda yang bagus tetap di sini) ...
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         code({ inline, className, children, ...props }: any) {
             const match = /language-(\w+)/.exec(className || '');
@@ -117,7 +114,6 @@ const ArticleDetailPage = () => {
 
             return !inline && match ? (
                 <div className="my-6 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-[#1e1e1e] shadow-lg">
-                    {/* Mac-style Window Header */}
                     <div className="flex items-center justify-between px-4 py-2 bg-[#2d2d2d] border-b border-gray-700">
                         <div className="flex items-center gap-2">
                             <div className="flex gap-1.5">
@@ -132,8 +128,6 @@ const ArticleDetailPage = () => {
                         </div>
                         <CopyButton text={codeText} />
                     </div>
-                    
-                    {/* Code Content */}
                     <div className="text-sm">
                         <SyntaxHighlighter
                             style={vscDarkPlus}
@@ -147,19 +141,15 @@ const ArticleDetailPage = () => {
                     </div>
                 </div>
             ) : (
-                // Inline Code
                 <code className="px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-red-500 dark:text-red-400 font-mono text-sm font-medium border border-gray-200 dark:border-gray-700" {...props}>
                     {children}
                 </code>
             );
         },
-
-        // 2. Images (Zoomable + Caption support logic layout)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         img({ ...props }: any) { 
             const isRelative = props.src && props.src.startsWith('/');
             const fullSrc = isRelative ? `http://127.0.0.1:8000${props.src}` : props.src;
-
             return (
                 <figure className="my-8">
                     <img
@@ -177,8 +167,6 @@ const ArticleDetailPage = () => {
                 </figure>
             );
         },
-
-        // 3. Headings (Auto Anchor)
         h2: ({ children }) => {
             const text = React.Children.toArray(children).join('');
             const id = slugify(text, { lower: true, strict: true });
@@ -191,7 +179,6 @@ const ArticleDetailPage = () => {
                 </h2>
             );
         },
-        // Blockquotes styling
         blockquote: ({ children }) => (
             <blockquote className="border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/20 p-4 my-6 rounded-r-lg text-gray-700 dark:text-gray-300 italic">
                 {children}
@@ -199,12 +186,11 @@ const ArticleDetailPage = () => {
         ),
     };
 
-
     // --- RENDER STATES ---
-
     if (loading) {
         return (
             <div className="max-w-4xl mx-auto p-4 md:p-8">
+               {/* Skeleton tetap sama */}
                 <div className="space-y-4 mb-12 text-center">
                     <Skeleton width={150} height={20} className="mb-4" />
                     <Skeleton height={60} className="mb-4" />
@@ -224,6 +210,7 @@ const ArticleDetailPage = () => {
     }
 
     if (error || !article) {
+        // Error state tetap sama
         return (
             <div className="min-h-[60vh] flex flex-col items-center justify-center p-4 text-center">
                 <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-6">
@@ -231,10 +218,7 @@ const ArticleDetailPage = () => {
                 </div>
                 <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Content Unavailable</h2>
                 <p className="text-gray-500 dark:text-gray-400 mb-6">{error || "We couldn't find the article you're looking for."}</p>
-                <button 
-                    onClick={() => window.history.back()}
-                    className="px-6 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium"
-                >
+                <button onClick={() => window.history.back()} className="px-6 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium">
                     Go Back
                 </button>
             </div>
@@ -244,6 +228,34 @@ const ArticleDetailPage = () => {
     return (
         <div className="w-full pb-20 animate-in fade-in duration-500">
             
+            {/* --- [BARU] HELMET SEO IMPLEMENTATION --- */}
+            <Helmet>
+                {/* 1. Title Browser */}
+                <title>{article.title} - Ravell Networks</title>
+                
+                {/* 2. Standard Meta */}
+                <meta name="description" content={article.summary || `Read comprehensive guide about ${article.title}`} />
+                <meta name="author" content={article.author_username} />
+                
+                {/* 3. Open Graph (Facebook/LinkedIn/WhatsApp) */}
+                <meta property="og:type" content="article" />
+                <meta property="og:title" content={article.title} />
+                <meta property="og:description" content={article.summary || `Read comprehensive guide about ${article.title}`} />
+                <meta property="og:url" content={window.location.href} />
+                {article.featured_image_url && (
+                    <meta property="og:image" content={article.featured_image_url} />
+                )}
+                
+                {/* 4. Twitter Card */}
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content={article.title} />
+                <meta name="twitter:description" content={article.summary || `Read comprehensive guide about ${article.title}`} />
+                {article.featured_image_url && (
+                    <meta name="twitter:image" content={article.featured_image_url} />
+                )}
+            </Helmet>
+            {/* -------------------------------------- */}
+
             {/* --- ARTICLE HEADER --- */}
             <header className="max-w-4xl mx-auto px-4 md:px-8 pt-8 md:pt-12 mb-10 text-center">
                 <div className="flex justify-center mb-6">
@@ -278,7 +290,6 @@ const ArticleDetailPage = () => {
                             })}
                         </time>
                     </div>
-                    {/* Dummy Reading Time (bisa dihitung dari word count jika ada) */}
                     <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-blue-500" />
                         <span>5 min read</span>
