@@ -1,5 +1,4 @@
 // src/components/TableOfContents.tsx
-import React from 'react';
 import type { Heading } from '../types/types';
 import { useActiveHeading } from '../hooks/useActiveHeading'; 
 
@@ -40,9 +39,6 @@ const TableOfContents = ({ headings }: TableOfContentsProps) => {
       </h3>
       <ul className="space-y-2 text-sm">
         {displayHeadings.map((heading) => {
-          // [MODIFIKASI] Menghitung indentasi. 
-          // (level - 2) * 12px -> h2=0px, h3=12px, h4=24px
-          // Memberikan indentasi visual yang lebih jelas daripada 4px
           const levelNumber = Number(heading.level.replace('h', ''));
           const paddingLeft = (levelNumber - 2) * 12;
           
