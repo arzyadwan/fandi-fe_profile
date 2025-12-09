@@ -1,9 +1,6 @@
-// src/components/RightSidebar.tsx
-import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { getPaginatedTags, getLatestArticles } from '../services/apiClient';
-import type { Tag, Article } from '../types/types';
 import { useSidebar } from '../SidebarContext';
+import { useGlobalData } from '../context/GlobalContext'; // <-- Import Global Data
 import { 
   Hash, 
   Clock, 
@@ -13,38 +10,33 @@ import {
 } from 'lucide-react';
 
 const RightSidebar = () => {
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [latestArticles, setLatestArticles] = useState<Article[]>([]);
+  // [PERUBAHAN UTAMA]
+  // Tidak ada lagi useState atau useEffect untuk fetch data.
+  // Kita langsung ambil dari GlobalContext.
+  const { tags, recentArticles: latestArticles, loading } = useGlobalData();
+  
   const location = useLocation();
-
   const { headings } = useSidebar();
   const isArticleDetailPage = location.pathname.startsWith('/articles/') && headings.length > 0;
-  
-  const fetchDynamicData = async () => {
-    try {
-      const tagsData = await getPaginatedTags();
-      setTags(tagsData.results);
-      const latestArticlesData = await getLatestArticles(); 
-      setLatestArticles(latestArticlesData);
-    } catch (err) {
-      console.error('Error fetching dynamic data for right sidebar:', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchDynamicData();
-  }, []);
 
   const handleScrollTo = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      // Offset untuk header yang fixed
       const yOffset = -100; 
       const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
   };
   
+  // Skeleton loading kecil jika data global sedang diambil
+  if (loading && !tags.length) {
+    return (
+      <aside className="hidden xl:block w-[320px] min-w-[320px] p-6 pl-0">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm animate-pulse h-64"></div>
+      </aside>
+    );
+  }
+
   // --- Components Render ---
 
   const RecentArticlesWidget = () => (
@@ -56,7 +48,7 @@ const RightSidebar = () => {
         </h3>
       </div>
       <ul className="space-y-4">
-        {latestArticles.slice(0, 5).map((article) => (
+        {latestArticles.map((article) => (
           <li key={article.id} className="group">
             <Link to={`/articles/${article.slug}`} className="block">
               <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 leading-relaxed mb-1">
@@ -82,7 +74,7 @@ const RightSidebar = () => {
         </h3>
       </div>
       <div className="flex flex-wrap gap-2">
-        {tags.slice(0, 10).map((tag) => (
+        {tags.map((tag) => (
           <Link
             key={tag.id}
             to={`/articles?tags__slug=${tag.slug}&tag_name=${tag.name}`}
@@ -111,7 +103,6 @@ const RightSidebar = () => {
       
       {headings && headings.length > 0 ? (
         <nav className="relative">
-          {/* Visual Vertical Line for Hierarchy */}
           <div className="absolute left-[5px] top-2 bottom-2 w-[1px] bg-gray-100 dark:bg-gray-800"></div>
           
           <ul className="space-y-1 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
@@ -144,34 +135,19 @@ const RightSidebar = () => {
     </div>
   );
 
-  // --- Main Layout ---
-
   return (
     <aside className="hidden xl:block w-[320px] min-w-[320px] p-6 pl-0">
-      {/* Layout Logic:
-        Jika di Halaman Detail:
-          1. Tampilkan Widget Statis (Recent/Tags) yang akan ikut scroll ke atas.
-          2. Tampilkan ToC yang akan 'Sticky' saat user membaca ke bawah.
-        
-        Jika di Halaman Lain:
-          1. Semua widget (Recent/Tags) dibuat Sticky agar area kanan tidak kosong.
-      */}
-
       {isArticleDetailPage ? (
         <div className="flex flex-col gap-6 h-full">
-          {/* Scrollable Part */}
           <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <RecentArticlesWidget />
             <TrendingTagsWidget />
           </div>
-
-          {/* Sticky Part (Table of Contents) */}
           <div className="sticky top-24 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100">
             <TableOfContentsWidget />
           </div>
         </div>
       ) : (
-        // Static Mode (Sticky Wrapper for all)
         <div className="sticky top-24 flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-500">
           <RecentArticlesWidget />
           <TrendingTagsWidget />
